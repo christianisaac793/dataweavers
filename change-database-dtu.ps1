@@ -1,70 +1,31 @@
-# Deploy three Windows web apps to Azure, all to the same hosting plan
-
-# Declaring variables for the resource group and hosting plan
-param resourceGroupName string
-param hostingPlanName string
-
-# Declaring a variable for the location of the resource group
-param location string
-
-# Declaring variables for the web apps
-param webApp1Name string
-param webApp2Name string
-param webApp3Name string
-
-# Declaring a variable for the timezone of web app 3
-param webApp3TimeZone string
-
-# Declaring a variable for the SKU of the web apps
-param webAppSku string
-
-# Declaring a variable for the app service plan
-param appServicePlanName string
-
-# Declaring a variable for the web app resource id
-param webAppResourceId string
-
-# Declaring a reusable segment for the web app resource
-resource webAppSegment (name: string, timeZone: string) = {
-  type: 'Microsoft.Web/sites'
-  apiVersion: '2020-06-01'
-  name: name
-  location: location
-  properties: {
-    serverFarmId: resourceId(resourceGroupName, 'Microsoft.Web/serverfarms', appServicePlanName)
-    timeZone: timeZone
-  }
+# Install the Azure PowerShell module if it is not already installed
+if (!(Get-Module -Name AzureRM -ListAvailable)) {
+  Install-Module -Name AzureRM -AllowClobber
 }
 
-# Deploying the web apps
-resource webApp1 {
-  name: webApp1Name
-  location: location
-  type: 'Microsoft.Web/sites'
-  apiVersion: '2020-06-01'
-  properties: {
-    serverFarmId: resourceId(resourceGroupName, 'Microsoft.Web/serverfarms', appServicePlanName)
-  }
-}
+# Import the Azure PowerShell module
+Import-Module AzureRM
 
-resource webApp2 {
-  name: webApp2Name
-  location: location
-  type: 'Microsoft.Web/sites'
-  apiVersion: '2020-06-01'
-  properties: {
-    serverFarmId: resourceId(resourceGroupName, 'Microsoft.Web/serverfarms', appServicePlanName)
-  }
-}
+# Connect to Azure using an interactive login prompt
+Connect-AzureRmAccount
 
-#  web app 3
-resource webApp3 {
-  name: webApp3Name
-  location: location
-  type: 'Microsoft.Web/sites'
-  apiVersion: '2020-06-01'
-  properties: {
-    serverFarmId: resourceId(resourceGroupName, 'Microsoft.Web/serverfarms', appServicePlanName)
-  }
-}
+# Declare variables for the resource group, server, and database names
+param (
+  [string]$resourceGroupName,
+  [string]$serverName,
+  [string]$databaseName
+)
 
+# Declare a variable for the new DTU value
+param (
+  [int]$newDtu
+)
+
+# Get the database object
+$database = Get-AzureRmSqlDatabase -ResourceGroupName $resourceGroupName -ServerName $serverName -DatabaseName $databaseName
+
+# Set the new DTU value
+$database.Sku.Capacity = $newDtu
+
+# Update the database with the new DTU value
+Set-AzureRmSqlDatabase -Database $database
